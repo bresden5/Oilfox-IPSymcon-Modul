@@ -1,0 +1,20 @@
+{
+  "id": "{2dec7b71-5a98-4f5c-8ed9-ab43339334a3}",
+  "author": "Dein Name",
+  "name": "Oilfox Modulbibliothek",
+  "url": "https://github.com/DeinBenutzername/Oilfox-IPSymcon-Modul",
+  "compatibility": {
+    "version": "6.0"
+  },
+  "modules": [
+    {
+      "id": "{62370d92-3152-43d4-b4f1-8a24c2dde4ac}",
+      "name": "Oilfox Modul",
+      "url": "https://github.com/DeinBenutzername/Oilfox-IPSymcon-Modul",
+      "prefix": "OILFOX",
+      "compatibility": {
+        "version": "6.0"
+      }
+    }
+  ]
+}
