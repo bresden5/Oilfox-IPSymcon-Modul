@@ -10,7 +10,7 @@
     {
       "id": "{62370d92-3152-43d4-b4f1-8a24c2dde4ac}",
       "name": "Oilfox Modul",
-      "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul/OilfoxTokenModule",
+      "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul",
       "prefix": "OILFOX",
       "compatibility": {
         "version": "7.2"
