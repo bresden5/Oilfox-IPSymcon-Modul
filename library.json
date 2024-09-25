@@ -4,7 +4,7 @@
   "name": "Oilfox Modulbibliothek",
   "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul",
   "compatibility": {
-    "version": "6.0"
+    "version": "7.2"
   },
   "modules": [
     {
@@ -13,7 +13,7 @@
       "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul/OilfoxTokenModule",
       "prefix": "OilfoxTokenModule",
       "compatibility": {
-        "version": "6.0"
+        "version": "7.2"
       }
     }
   ]
