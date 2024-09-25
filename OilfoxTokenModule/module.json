@@ -8,7 +8,7 @@
   "compatibility": {
     "version": "7.2"
   },
-  "prefix": "OILFOX",
+  "prefix": "OilfoxTokenModule",
   "elements": [
     {
       "id": "{4d6ea1c2-ea08-43d1-87f2-562c0159fb81}",
