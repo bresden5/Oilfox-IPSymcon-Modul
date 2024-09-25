@@ -2,7 +2,7 @@
   "id": "{2dec7b71-5a98-4f5c-8ed9-ab43339334a3}",
   "author": "Daniel Rahlfs",
   "name": "Oilfox Modulbibliothek",
-  "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul",
+  "url": "https://github.com/DeinBenutzername/Oilfox-IPSymcon-Modul",
   "compatibility": {
     "version": "7.2"
   },
@@ -10,8 +10,8 @@
     {
       "id": "{62370d92-3152-43d4-b4f1-8a24c2dde4ac}",
       "name": "Oilfox Modul",
-      "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul/OilfoxTokenModule",
-      "prefix": "OilfoxTokenModule",
+      "url": "https://github.com/DeinBenutzername/Oilfox-IPSymcon-Modul/Oilfox",
+      "prefix": "OILFOX",
       "compatibility": {
         "version": "7.2"
       }
