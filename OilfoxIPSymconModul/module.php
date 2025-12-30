@@ -16,7 +16,7 @@ class OilfoxIPSymconModul extends IPSModule
 
         // === Attributes ===
         $this->RegisterAttributeString("PasswordEncrypted", "");
-        $this->RegisterAttributeString("CryptoKey", "MeinGeheimerKey"); // Schlüssel für Verschlüsselung
+        $this->RegisterAttributeString("EncryptionKey", "OilfoxSecretKey123"); // AES-256 Schlüssel
 
         // === Timer ===
         $this->RegisterTimer(
@@ -30,27 +30,7 @@ class OilfoxIPSymconModul extends IPSModule
         $this->RegisterVariableString("refresh_token", "Refresh Token");
 
         // === Profiles ===
-        if (!IPS_VariableProfileExists("OILFOX.Percent")) {
-            IPS_CreateVariableProfile("OILFOX.Percent", 1);
-            IPS_SetVariableProfileText("OILFOX.Percent", "", " %");
-        }
-
-        if (!IPS_VariableProfileExists("OILFOX.Days")) {
-            IPS_CreateVariableProfile("OILFOX.Days", 1);
-            IPS_SetVariableProfileText("OILFOX.Days", "", " Tage");
-        }
-
-        if (!IPS_VariableProfileExists("OILFOX.Liter")) {
-            IPS_CreateVariableProfile("OILFOX.Liter", 1);
-            IPS_SetVariableProfileText("OILFOX.Liter", "", " L");
-        }
-
-        if (!IPS_VariableProfileExists("OILFOX.Battery")) {
-            IPS_CreateVariableProfile("OILFOX.Battery", 3); // String
-            IPS_SetVariableProfileAssociation("OILFOX.Battery", "OK", "OK", "", 0x00FF00);
-            IPS_SetVariableProfileAssociation("OILFOX.Battery", "LOW", "Niedrig", "", 0xFFFF00);
-            IPS_SetVariableProfileAssociation("OILFOX.Battery", "CRITICAL", "Kritisch", "", 0xFF0000);
-        }
+        $this->CreateProfiles();
 
         // === Device Variables ===
         $this->RegisterVariableString("hwid", "Hardware ID");
@@ -67,11 +47,13 @@ class OilfoxIPSymconModul extends IPSModule
     {
         parent::ApplyChanges();
 
-        // Passwort verschlüsselt speichern via Crypto-Modul
+        // Passwort verschlüsseln speichern
         if ($this->ReadPropertyString("Password") !== "") {
-            $key = $this->ReadAttributeString("CryptoKey");
-            $enc = Crypto_OpenSSLEncrypt($this->ReadPropertyString("Password"), "AES-256-CBC", $key);
-            $this->WriteAttributeString("PasswordEncrypted", $enc);
+            $key = $this->ReadAttributeString("EncryptionKey");
+            $password = $this->ReadPropertyString("Password");
+            $encrypted = $this->EncryptPassword($password, $key);
+            $this->WriteAttributeString("PasswordEncrypted", $encrypted);
+
             IPS_SetProperty($this->InstanceID, "Password", "");
             IPS_ApplyChanges($this->InstanceID);
             return;
@@ -166,8 +148,8 @@ class OilfoxIPSymconModul extends IPSModule
 
     private function Login(): bool
     {
-        $key = $this->ReadAttributeString("CryptoKey");
-        $password = Crypto_OpenSSLDecrypt($this->ReadAttributeString("PasswordEncrypted"), "AES-256-CBC", $key);
+        $key = $this->ReadAttributeString("EncryptionKey");
+        $password = $this->DecryptPassword($this->ReadAttributeString("PasswordEncrypted"), $key);
 
         $result = $this->RequestJson(
             "https://api.oilfox.io/customer-api/v1/login",
@@ -281,6 +263,49 @@ class OilfoxIPSymconModul extends IPSModule
     {
         if ($this->ReadPropertyBoolean("Debug")) {
             $this->LogMessage($msg, KL_DEBUG);
+        }
+    }
+
+    // ===================== ENCRYPTION =====================
+    private function EncryptPassword(string $password, string $key): string
+    {
+        $ivlen = openssl_cipher_iv_length('AES-256-CBC');
+        $iv = openssl_random_pseudo_bytes($ivlen);
+        $encrypted = openssl_encrypt($password, 'AES-256-CBC', $key, 0, $iv);
+        return base64_encode($iv . $encrypted);
+    }
+
+    private function DecryptPassword(string $encrypted, string $key): string
+    {
+        $data = base64_decode($encrypted);
+        $ivlen = openssl_cipher_iv_length('AES-256-CBC');
+        $iv = substr($data, 0, $ivlen);
+        $ciphertext = substr($data, $ivlen);
+        return openssl_decrypt($ciphertext, 'AES-256-CBC', $key, 0, $iv);
+    }
+
+    private function CreateProfiles()
+    {
+        if (!IPS_VariableProfileExists("OILFOX.Percent")) {
+            IPS_CreateVariableProfile("OILFOX.Percent", 1);
+            IPS_SetVariableProfileText("OILFOX.Percent", "", " %");
+        }
+
+        if (!IPS_VariableProfileExists("OILFOX.Days")) {
+            IPS_CreateVariableProfile("OILFOX.Days", 1);
+            IPS_SetVariableProfileText("OILFOX.Days", "", " Tage");
+        }
+
+        if (!IPS_VariableProfileExists("OILFOX.Liter")) {
+            IPS_CreateVariableProfile("OILFOX.Liter", 1);
+            IPS_SetVariableProfileText("OILFOX.Liter", "", " L");
+        }
+
+        if (!IPS_VariableProfileExists("OILFOX.Battery")) {
+            IPS_CreateVariableProfile("OILFOX.Battery", 3); // String
+            IPS_SetVariableProfileAssociation("OILFOX.Battery", "OK", "OK", "", 0x00FF00);
+            IPS_SetVariableProfileAssociation("OILFOX.Battery", "LOW", "Niedrig", "", 0xFFFF00);
+            IPS_SetVariableProfileAssociation("OILFOX.Battery", "CRITICAL", "Kritisch", "", 0xFF0000);
         }
     }
 }
