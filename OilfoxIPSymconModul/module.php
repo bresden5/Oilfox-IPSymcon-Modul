@@ -84,7 +84,17 @@ class OilfoxIPSymconModul extends IPSModule
     // ===================== CONFIG FORM =====================
     public function GetConfigurationForm()
     {
-        $form = json_decode(file_get_contents(__DIR__ . "/form.json"), true);
+        $formFile = __DIR__ . "/form.json";
+		if (!file_exists($formFile)) {
+			$this->LogMessage("form.json nicht gefunden: $formFile", KL_ERROR);
+			return json_encode(["elements"=>[]]);
+		}
+		$form = json_decode(file_get_contents($formFile), true);
+		if ($form === null) {
+			$this->LogMessage("form.json konnte nicht decodiert werden", KL_ERROR);
+			return json_encode(["elements"=>[]]);
+		}
+
 
         // Geräte dynamisch füllen
         if ($this->GetValue("access_token") !== "") {
