@@ -1,5 +1,79 @@
 {
-    "elements": [],
-    "actions": [],
-    "status": []
+  "elements": [
+    {
+      "type": "ExpansionPanel",
+      "caption": "Zugangsdaten",
+      "items": [
+        {
+          "type": "ValidationTextBox",
+          "name": "Email",
+          "caption": "E-Mail-Adresse"
+        },
+        {
+          "type": "PasswordTextBox",
+          "name": "Password",
+          "caption": "Passwort"
+        }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "Geräteauswahl",
+      "items": [
+        {
+          "type": "Select",
+          "name": "DeviceID",
+          "caption": "Oilfox Gerät",
+          "options": []
+        },
+        {
+          "type": "Button",
+          "caption": "🔄 Geräte laden",
+          "onClick": "OILFOX_LoadDevices($id);"
+        }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "Update-Einstellungen",
+      "items": [
+        {
+          "type": "NumberSpinner",
+          "name": "UpdateInterval",
+          "caption": "Updateintervall (Sekunden)",
+          "minimum": 300,
+          "suffix": "Sek."
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Button",
+      "caption": "📡 Jetzt aktualisieren",
+      "onClick": "OILFOX_Update($id);"
+    }
+  ],
+  "status": [
+    {
+      "code": 102,
+      "icon": "active",
+      "caption": "Aktiv"
+    },
+    {
+      "code": 201,
+      "icon": "error",
+      "caption": "Login fehlgeschlagen"
+    },
+    {
+      "code": 202,
+      "icon": "error",
+      "caption": "API nicht erreichbar"
+    }
+  ]
+}
+{
+  "type": "CheckBox",
+  "name": "Debug",
+  "caption": "Debug-Ausgaben aktivieren"
 }
