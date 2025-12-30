@@ -14,8 +14,9 @@ class OilfoxIPSymconModul extends IPSModule
         $this->RegisterPropertyInteger("UpdateInterval", 3600);
         $this->RegisterPropertyBoolean("Debug", false);
 
-        // === Attribute ===
+        // === Attributes ===
         $this->RegisterAttributeString("PasswordEncrypted", "");
+        $this->RegisterAttributeString("CryptoKey", "MeinGeheimerKey"); // Schlüssel für Verschlüsselung
 
         // === Timer ===
         $this->RegisterTimer(
@@ -66,12 +67,11 @@ class OilfoxIPSymconModul extends IPSModule
     {
         parent::ApplyChanges();
 
-        // Passwort verschlüsselt speichern
+        // Passwort verschlüsselt speichern via Crypto-Modul
         if ($this->ReadPropertyString("Password") !== "") {
-            $this->WriteAttributeString(
-                "PasswordEncrypted",
-                IPS_Encrypt($this->ReadPropertyString("Password"))
-            );
+            $key = $this->ReadAttributeString("CryptoKey");
+            $enc = Crypto_OpenSSLEncrypt($this->ReadPropertyString("Password"), "AES-256-CBC", $key);
+            $this->WriteAttributeString("PasswordEncrypted", $enc);
             IPS_SetProperty($this->InstanceID, "Password", "");
             IPS_ApplyChanges($this->InstanceID);
             return;
@@ -166,7 +166,8 @@ class OilfoxIPSymconModul extends IPSModule
 
     private function Login(): bool
     {
-        $password = IPS_Decrypt($this->ReadAttributeString("PasswordEncrypted"));
+        $key = $this->ReadAttributeString("CryptoKey");
+        $password = Crypto_OpenSSLDecrypt($this->ReadAttributeString("PasswordEncrypted"), "AES-256-CBC", $key);
 
         $result = $this->RequestJson(
             "https://api.oilfox.io/customer-api/v1/login",
