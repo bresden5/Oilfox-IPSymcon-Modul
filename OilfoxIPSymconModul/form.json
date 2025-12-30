@@ -40,9 +40,14 @@
         {
           "type": "NumberSpinner",
           "name": "UpdateInterval",
-          "caption": "Updateintervall (Sekunden)",
+          "caption": "Updateintervall",
           "minimum": 300,
-          "suffix": "Sek."
+          "suffix": "Sekunden"
+        },
+        {
+          "type": "CheckBox",
+          "name": "Debug",
+          "caption": "Debug-Ausgaben aktivieren"
         }
       ]
     }
@@ -71,9 +76,4 @@
       "caption": "API nicht erreichbar"
     }
   ]
-}
-{
-  "type": "CheckBox",
-  "name": "Debug",
-  "caption": "Debug-Ausgaben aktivieren"
 }
