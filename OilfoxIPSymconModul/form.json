@@ -29,18 +29,12 @@
     },
     {
       "type": "ExpansionPanel",
-      "caption": "Geräteauswahl",
+      "caption": "Geräte",
       "items": [
         {
-          "type": "Select",
-          "name": "DeviceID",
-          "caption": "Oilfox Gerät",
-          "options": []
-        },
-        {
-          "type": "Button",
-          "caption": "🔄 Geräte laden",
-          "onClick": "OILFOX_LoadDevices($id);"
+          "type": "ValidationTextBox",
+          "name": "DeviceIDs",
+          "caption": "Geräte IDs (kommagetrennt)"
         }
       ]
     },

@@ -10,7 +10,7 @@ class OilfoxIPSymconModul extends IPSModule
         $this->RegisterPropertyBoolean("Active", true);
         $this->RegisterPropertyString("Email", "");
         $this->RegisterPropertyString("Password", "");
-        $this->RegisterPropertyString("DeviceID", "");
+        $this->RegisterPropertyString("DeviceIDs", ""); // CSV: mehrere Geräte-IDs
         $this->RegisterPropertyInteger("UpdateInterval", 3600);
         $this->RegisterPropertyBoolean("Debug", false);
 
@@ -29,31 +29,20 @@ class OilfoxIPSymconModul extends IPSModule
         $this->RegisterVariableString("access_token", "Access Token");
         $this->RegisterVariableString("refresh_token", "Refresh Token");
 
-        // === Profiles ===
+        // === Profiles erstellen ===
         $this->CreateProfiles();
-
-        // === Device Variables ===
-        $this->RegisterVariableString("hwid", "Hardware ID");
-        $this->RegisterVariableString("currentMeteringAt", "Letzte Messung");
-        $this->RegisterVariableInteger("fillLevelPercent", "Füllstand", "OILFOX.Percent");
-        $this->RegisterVariableString("batteryLevel", "Batterie", "OILFOX.Battery");
-        $this->RegisterVariableInteger("daysReach", "Reichweite", "OILFOX.Days");
-        $this->RegisterVariableInteger("fillLevelQuantity", "Füllmenge", "OILFOX.Liter");
-        $this->RegisterVariableString("nextMeteringAt", "Nächste Messung");
-        $this->RegisterVariableString("quantityUnit", "Einheit");
     }
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
 
-        // Passwort verschlüsseln speichern
+        // Passwort verschlüsselt speichern
         if ($this->ReadPropertyString("Password") !== "") {
             $key = $this->ReadAttributeString("EncryptionKey");
             $password = $this->ReadPropertyString("Password");
             $encrypted = $this->EncryptPassword($password, $key);
             $this->WriteAttributeString("PasswordEncrypted", $encrypted);
-
             IPS_SetProperty($this->InstanceID, "Password", "");
             IPS_ApplyChanges($this->InstanceID);
             return;
@@ -79,21 +68,6 @@ class OilfoxIPSymconModul extends IPSModule
             return json_encode(["elements"=>[]]);
         }
 
-        // Geräte dynamisch füllen
-        if ($this->GetValue("access_token") !== "") {
-            $devices = $this->GetDevices();
-            if (is_array($devices)) {
-                foreach ($form["elements"] as &$element) {
-                    if (!isset($element["items"])) continue;
-                    foreach ($element["items"] as &$item) {
-                        if ($item["name"] === "DeviceID") {
-                            $item["options"] = $devices;
-                        }
-                    }
-                }
-            }
-        }
-
         return json_encode($form);
     }
 
@@ -110,31 +84,68 @@ class OilfoxIPSymconModul extends IPSModule
             return;
         }
 
-        if ($this->ReadPropertyString("DeviceID") === "") {
-            $this->DebugLog("Keine DeviceID gesetzt");
-            return;
+        $deviceIDs = array_map('trim', explode(",", $this->ReadPropertyString("DeviceIDs")));
+        foreach ($deviceIDs as $deviceID) {
+            if ($deviceID === "") continue;
+            $this->UpdateDevice($deviceID);
         }
 
-        $this->ReadDeviceData();
         $this->SetStatus(102);
     }
 
-    public function LoadDevices()
+    private function UpdateDevice(string $deviceID)
     {
-        if (!$this->EnsureAccessToken()) {
-            $this->SetStatus(201);
+        // Kategorie für das Gerät anlegen
+        $catIdent = "Device_" . $deviceID;
+        $catID = @IPS_GetObjectIDByIdent($catIdent, $this->InstanceID);
+        if ($catID === false) {
+            $catID = IPS_CreateCategory();
+            IPS_SetParent($catID, $this->InstanceID);
+            IPS_SetName($catID, $deviceID);
+            IPS_SetIdent($catID, $catIdent);
+        }
+
+        // API abrufen
+        $result = $this->RequestJson(
+            "https://api.oilfox.io/customer-api/v1/device/" . $deviceID,
+            "GET",
+            "",
+            ["Authorization: Bearer " . $this->GetValue("access_token")]
+        );
+
+        if (!$result && $this->RefreshToken()) {
+            return $this->UpdateDevice($deviceID);
+        }
+
+        if (!$result) {
+            $this->SetStatus(202);
             return;
         }
 
-        $devices = $this->GetDevices();
+        // Variablen für Gerät anlegen oder aktualisieren
+        $this->CreateOrUpdateVariable($catID, "hwid", "Hardware ID", 3, $result->hwid);
+        $this->CreateOrUpdateVariable($catID, "currentMeteringAt", "Letzte Messung", 3, $result->currentMeteringAt);
+        $this->CreateOrUpdateVariable($catID, "fillLevelPercent", "Füllstand", 1, $result->fillLevelPercent, "OILFOX.Percent");
+        $this->CreateOrUpdateVariable($catID, "batteryLevel", "Batterie", 3, $result->batteryLevel, "OILFOX.Battery");
+        $this->CreateOrUpdateVariable($catID, "daysReach", "Reichweite", 1, $result->daysReach, "OILFOX.Days");
+        $this->CreateOrUpdateVariable($catID, "fillLevelQuantity", "Füllmenge", 1, $result->fillLevelQuantity, "OILFOX.Liter");
+        $this->CreateOrUpdateVariable($catID, "nextMeteringAt", "Nächste Messung", 3, $result->nextMeteringAt);
+        $this->CreateOrUpdateVariable($catID, "quantityUnit", "Einheit", 3, $result->quantityUnit);
+    }
 
-        // Auto-Select bei genau einem Gerät
-        if (count($devices) === 1) {
-            IPS_SetProperty($this->InstanceID, "DeviceID", $devices[0]["value"]);
-            IPS_ApplyChanges($this->InstanceID);
+    private function CreateOrUpdateVariable(int $parentID, string $ident, string $name, int $varType, $value, string $profile = "")
+    {
+        $varID = @IPS_GetObjectIDByIdent($ident, $parentID);
+        if ($varID === false) {
+            $varID = IPS_CreateVariable($varType);
+            IPS_SetParent($varID, $parentID);
+            IPS_SetName($varID, $name);
+            IPS_SetIdent($varID, $ident);
+            if ($profile !== "") {
+                IPS_SetVariableCustomProfile($varID, $profile);
+            }
         }
-
-        $this->ReloadForm();
+        SetValue($varID, $value);
     }
 
     // ===================== TOKEN HANDLING =====================
@@ -184,57 +195,7 @@ class OilfoxIPSymconModul extends IPSModule
         return true;
     }
 
-    // ===================== API CALLS =====================
-    private function GetDevices(): array
-    {
-        $result = $this->RequestJson(
-            "https://api.oilfox.io/customer-api/v1/device",
-            "GET",
-            "",
-            ["Authorization: Bearer " . $this->GetValue("access_token")]
-        );
-
-        if (!is_array($result)) return [];
-
-        $list = [];
-        foreach ($result as $device) {
-            if (isset($device->hwid)) {
-                $list[] = [
-                    "caption" => $device->hwid,
-                    "value" => $device->hwid
-                ];
-            }
-        }
-
-        return $list;
-    }
-
-    private function ReadDeviceData()
-    {
-        $result = $this->RequestJson(
-            "https://api.oilfox.io/customer-api/v1/device/" . $this->ReadPropertyString("DeviceID"),
-            "GET",
-            "",
-            ["Authorization: Bearer " . $this->GetValue("access_token")]
-        );
-
-        if (!$result && $this->RefreshToken()) {
-            return $this->ReadDeviceData();
-        }
-
-        if (!$result) {
-            $this->SetStatus(202);
-            return;
-        }
-
-        foreach ($result as $ident => $value) {
-            if ($this->GetIDForIdent($ident) !== false && $value !== null) {
-                $this->SetValue($ident, $value);
-            }
-        }
-    }
-
-    // ===================== HELPER =====================
+    // ===================== API HELPER =====================
     private function RequestJson(string $url, string $method, string $payload, array $headers)
     {
         $this->DebugLog("API $method: $url");
