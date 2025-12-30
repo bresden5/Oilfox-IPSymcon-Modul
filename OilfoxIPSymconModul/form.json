@@ -2,6 +2,17 @@
   "elements": [
     {
       "type": "ExpansionPanel",
+      "caption": "Instanz-Steuerung",
+      "items": [
+        {
+          "type": "CheckBox",
+          "name": "Active",
+          "caption": "Instanz aktiv"
+        }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
       "caption": "Zugangsdaten",
       "items": [
         {

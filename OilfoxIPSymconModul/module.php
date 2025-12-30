@@ -7,13 +7,14 @@ class OilfoxIPSymconModul extends IPSModule
         parent::Create();
 
         // === Properties ===
+        $this->RegisterPropertyBoolean("Active", true);
         $this->RegisterPropertyString("Email", "");
         $this->RegisterPropertyString("Password", "");
         $this->RegisterPropertyString("DeviceID", "");
         $this->RegisterPropertyInteger("UpdateInterval", 3600);
         $this->RegisterPropertyBoolean("Debug", false);
 
-        // === Attributes ===
+        // === Attribute ===
         $this->RegisterAttributeString("PasswordEncrypted", "");
 
         // === Timer ===
@@ -85,16 +86,16 @@ class OilfoxIPSymconModul extends IPSModule
     public function GetConfigurationForm()
     {
         $formFile = __DIR__ . "/form.json";
-		if (!file_exists($formFile)) {
-			$this->LogMessage("form.json nicht gefunden: $formFile", KL_ERROR);
-			return json_encode(["elements"=>[]]);
-		}
-		$form = json_decode(file_get_contents($formFile), true);
-		if ($form === null) {
-			$this->LogMessage("form.json konnte nicht decodiert werden", KL_ERROR);
-			return json_encode(["elements"=>[]]);
-		}
+        if (!file_exists($formFile)) {
+            $this->LogMessage("form.json nicht gefunden: $formFile", KL_ERROR);
+            return json_encode(["elements"=>[]]);
+        }
 
+        $form = json_decode(file_get_contents($formFile), true);
+        if ($form === null) {
+            $this->LogMessage("form.json konnte nicht decodiert werden", KL_ERROR);
+            return json_encode(["elements"=>[]]);
+        }
 
         // Geräte dynamisch füllen
         if ($this->GetValue("access_token") !== "") {
@@ -117,6 +118,11 @@ class OilfoxIPSymconModul extends IPSModule
     // ===================== PUBLIC ACTIONS =====================
     public function Update()
     {
+        if (!$this->ReadPropertyBoolean("Active")) {
+            $this->DebugLog("Instanz deaktiviert, Update übersprungen");
+            return;
+        }
+
         if (!$this->EnsureAccessToken()) {
             $this->SetStatus(201);
             return;
