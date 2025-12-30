@@ -1,20 +1,12 @@
 {
-  "id": "{62370d92-3152-43d4-b4f1-8a24c2dde4ac}",
-  "name": "Oilfox Modul",
-  "author": "Daniel Rahlfs",
-  "url": "https://github.com/DeinBenutzername/Oilfox-IPSymcon-Modul",
-  "version": "1.0",
-  "build": 1,
-  "compatibility": {
-    "version": "7.2"
-  },
-  "prefix": "OILFOX",
-  "elements": [
-    {
-      "id": "{4d6ea1c2-ea08-43d1-87f2-562c0159fb81}",
-      "name": "Oilfox Instanz",
-      "type": 1,
-      "class": "OilfoxTokenModule"
-    }
-  ]
+    "id": "{CAB7FE12-44DB-EE76-FF97-5A61C84994B2}",
+    "name": "OilfoxIPSymconModul",
+    "type": 3,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "OILFOX",
+    "url": "https://github.com/bresden5/Oilfox-IPSymcon-Modul.git"
 }
