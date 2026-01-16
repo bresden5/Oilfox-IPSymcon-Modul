@@ -103,28 +103,36 @@ class OilfoxIPSymconModul extends IPSModule
         $this->SetVar($catID, "batteryLevel", "Batterie", 3, $data->batteryLevel);
         $this->SetVar($catID, "nextMeteringAt", "Nächste Messung", 3, $data->nextMeteringAt);
 
-        // ===== Timer sauber setzen =====
-		$nextTimestamp = null;
+        // ===== Timer korrekt anhand ISO8601 setzen =====
+        $nextTimestamp = null;
 
-		if (!empty($data->nextMeteringAt)) {
-			$ts = strtotime($data->nextMeteringAt);
+        if (!empty($data->nextMeteringAt)) {
+            $nextTimestamp = $this->ParseNextMetering($data->nextMeteringAt);
+        }
 
-			if ($ts !== false && $ts > time()) {
-				// 15 Minuten nach Messung
-				$nextTimestamp = $ts + (15 * 60);
-			}
-		}
+        if ($nextTimestamp !== null && $nextTimestamp > time()) {
+            $delayMs = ($nextTimestamp - time()) * 1000;
+            $this->SetTimerInterval("UpdateTimer", $delayMs);
+            $this->Debug("Nächstes Update geplant um " . date("d.m.Y H:i:s", $nextTimestamp));
+        } else {
+            // Fallback: 6 Stunden
+            $this->SetTimerInterval("UpdateTimer", 6 * 60 * 60 * 1000);
+            $this->Debug("Ungültige nextMeteringAt – Fallback 6 Stunden");
+        }
+    }
 
-		if ($nextTimestamp !== null && $nextTimestamp > time()) {
-			$delayMs = ($nextTimestamp - time()) * 1000;
-			$this->SetTimerInterval("UpdateTimer", $delayMs);
-			$this->Debug("Nächstes Update geplant um " . date("H:i:s", $nextTimestamp));
-		} else {
-			// Fallback: 6 Stunden
-			$this->SetTimerInterval("UpdateTimer", 6 * 60 * 60 * 1000);
-			$this->Debug("Kein gültiges nextMeteringAt – Fallback 6 Stunden");
-		}
+    // ===================== TIME PARSER =====================
+    private function ParseNextMetering(string $value): ?int
+    {
+        try {
+            // ISO8601 / RFC3339 mit Millisekunden & UTC ("Z")
+            $dt = new DateTimeImmutable($value, new DateTimeZone('UTC'));
 
+            // 15 Minuten nach der Messung
+            return $dt->getTimestamp() + (15 * 60);
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
     // ===================== TOKEN =====================
@@ -143,7 +151,10 @@ class OilfoxIPSymconModul extends IPSModule
         $res = $this->Request(
             "https://api.oilfox.io/customer-api/v1/login",
             "POST",
-            json_encode(["email"=>$this->ReadPropertyString("Email"),"password"=>$pw]),
+            json_encode([
+                "email" => $this->ReadPropertyString("Email"),
+                "password" => $pw
+            ]),
             ["Content-Type: application/json"]
         );
 
@@ -157,7 +168,7 @@ class OilfoxIPSymconModul extends IPSModule
     private function RefreshToken(): bool
     {
         $res = $this->Request(
-            "https://api.oilfox.io/customer-api/v1/token?refresh_token=".$this->GetValue("refresh_token"),
+            "https://api.oilfox.io/customer-api/v1/token?refresh_token=" . $this->GetValue("refresh_token"),
             "POST",
             "",
             ["Content-Type: application/x-www-form-urlencoded"]
@@ -179,7 +190,9 @@ class OilfoxIPSymconModul extends IPSModule
             IPS_SetParent($id, $parent);
             IPS_SetIdent($id, $ident);
             IPS_SetName($id, $name);
-            if ($profile !== "") IPS_SetVariableCustomProfile($id, $profile);
+            if ($profile !== "") {
+                IPS_SetVariableCustomProfile($id, $profile);
+            }
         }
         SetValue($id, $value);
     }
@@ -189,10 +202,10 @@ class OilfoxIPSymconModul extends IPSModule
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_TIMEOUT => 15
+            CURLOPT_CUSTOMREQUEST  => $method,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_TIMEOUT        => 15
         ]);
         $res = curl_exec($ch);
         curl_close($ch);
@@ -202,13 +215,21 @@ class OilfoxIPSymconModul extends IPSModule
     private function Encrypt($text, $key)
     {
         $iv = random_bytes(16);
-        return base64_encode($iv . openssl_encrypt($text, 'AES-256-CBC', $key, 0, $iv));
+        return base64_encode(
+            $iv . openssl_encrypt($text, 'AES-256-CBC', $key, 0, $iv)
+        );
     }
 
     private function Decrypt($text, $key)
     {
         $data = base64_decode($text);
-        return openssl_decrypt(substr($data,16), 'AES-256-CBC', $key, 0, substr($data,0,16));
+        return openssl_decrypt(
+            substr($data, 16),
+            'AES-256-CBC',
+            $key,
+            0,
+            substr($data, 0, 16)
+        );
     }
 
     private function Debug($msg)
