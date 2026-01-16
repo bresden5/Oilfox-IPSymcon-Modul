@@ -1,60 +1,29 @@
 {
   "elements": [
     {
-      "type": "ExpansionPanel",
-      "caption": "Instanz-Steuerung",
-      "items": [
-        {
-          "type": "CheckBox",
-          "name": "Active",
-          "caption": "Instanz aktiv"
-        }
-      ]
+      "type": "CheckBox",
+      "name": "Active",
+      "caption": "Instanz aktiv"
     },
     {
-      "type": "ExpansionPanel",
-      "caption": "Zugangsdaten",
-      "items": [
-        {
-          "type": "ValidationTextBox",
-          "name": "Email",
-          "caption": "E-Mail-Adresse"
-        },
-        {
-          "type": "PasswordTextBox",
-          "name": "Password",
-          "caption": "Passwort"
-        }
-      ]
+      "type": "ValidationTextBox",
+      "name": "Email",
+      "caption": "E-Mail-Adresse"
     },
     {
-      "type": "ExpansionPanel",
-      "caption": "Geräte",
-      "items": [
-        {
-          "type": "ValidationTextBox",
-          "name": "DeviceIDs",
-          "caption": "Geräte IDs (kommagetrennt)"
-        }
-      ]
+      "type": "PasswordTextBox",
+      "name": "Password",
+      "caption": "Passwort"
     },
     {
-      "type": "ExpansionPanel",
-      "caption": "Update-Einstellungen",
-      "items": [
-        {
-          "type": "NumberSpinner",
-          "name": "UpdateInterval",
-          "caption": "Updateintervall",
-          "minimum": 300,
-          "suffix": "Sekunden"
-        },
-        {
-          "type": "CheckBox",
-          "name": "Debug",
-          "caption": "Debug-Ausgaben aktivieren"
-        }
-      ]
+      "type": "ValidationTextBox",
+      "name": "DeviceID",
+      "caption": "Oilfox Geräte-ID"
+    },
+    {
+      "type": "CheckBox",
+      "name": "Debug",
+      "caption": "Debug-Ausgaben aktivieren"
     }
   ],
   "actions": [
@@ -65,20 +34,9 @@
     }
   ],
   "status": [
-    {
-      "code": 102,
-      "icon": "active",
-      "caption": "Aktiv"
-    },
-    {
-      "code": 201,
-      "icon": "error",
-      "caption": "Login fehlgeschlagen"
-    },
-    {
-      "code": 202,
-      "icon": "error",
-      "caption": "API nicht erreichbar"
-    }
+    { "code": 102, "caption": "Aktiv", "icon": "active" },
+    { "code": 201, "caption": "Login fehlgeschlagen", "icon": "error" },
+    { "code": 202, "caption": "API nicht erreichbar", "icon": "error" },
+    { "code": 203, "caption": "Keine Geräte-ID gesetzt", "icon": "error" }
   ]
 }
