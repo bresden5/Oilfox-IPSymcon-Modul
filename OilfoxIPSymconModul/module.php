@@ -103,13 +103,28 @@ class OilfoxIPSymconModul extends IPSModule
         $this->SetVar($catID, "batteryLevel", "Batterie", 3, $data->batteryLevel);
         $this->SetVar($catID, "nextMeteringAt", "Nächste Messung", 3, $data->nextMeteringAt);
 
-        // === Timer neu setzen ===
-        if (!empty($data->nextMeteringAt)) {
-            $next = strtotime($data->nextMeteringAt) + (15 * 60);
-            $delay = max(60, ($next - time()) * 1000);
-            $this->SetTimerInterval("UpdateTimer", $delay);
-            $this->Debug("Nächstes Update in " . round($delay / 1000) . " Sekunden");
-        }
+        // ===== Timer sauber setzen =====
+		$nextTimestamp = null;
+
+		if (!empty($data->nextMeteringAt)) {
+			$ts = strtotime($data->nextMeteringAt);
+
+			if ($ts !== false && $ts > time()) {
+				// 15 Minuten nach Messung
+				$nextTimestamp = $ts + (15 * 60);
+			}
+		}
+
+		if ($nextTimestamp !== null && $nextTimestamp > time()) {
+			$delayMs = ($nextTimestamp - time()) * 1000;
+			$this->SetTimerInterval("UpdateTimer", $delayMs);
+			$this->Debug("Nächstes Update geplant um " . date("H:i:s", $nextTimestamp));
+		} else {
+			// Fallback: 6 Stunden
+			$this->SetTimerInterval("UpdateTimer", 6 * 60 * 60 * 1000);
+			$this->Debug("Kein gültiges nextMeteringAt – Fallback 6 Stunden");
+		}
+
     }
 
     // ===================== TOKEN =====================
