@@ -46,6 +46,14 @@ class OilfoxIPSymconModul extends IPSModule
             IPS_ApplyChanges($this->InstanceID);
             return;
         }
+
+        // 🔹 Initialer Start nach Übernehmen
+        if ($this->ReadPropertyBoolean("Active")) {
+            $this->SetTimerInterval("UpdateTimer", 10 * 1000);
+            $this->Debug("Initiales Update in 10 Sekunden geplant");
+        } else {
+            $this->SetTimerInterval("UpdateTimer", 0);
+        }
     }
 
     // ===================== UPDATE =====================
@@ -103,21 +111,34 @@ class OilfoxIPSymconModul extends IPSModule
         $this->SetVar($catID, "batteryLevel", "Batterie", 3, $data->batteryLevel);
         $this->SetVar($catID, "nextMeteringAt", "Nächste Messung", 3, $data->nextMeteringAt);
 
-        // ===== Timer korrekt anhand ISO8601 setzen =====
+        // ===== Timer sauber & zuverlässig setzen =====
         $nextTimestamp = null;
 
         if (!empty($data->nextMeteringAt)) {
             $nextTimestamp = $this->ParseNextMetering($data->nextMeteringAt);
         }
 
-        if ($nextTimestamp !== null && $nextTimestamp > time()) {
-            $delayMs = ($nextTimestamp - time()) * 1000;
+        if ($nextTimestamp !== null) {
+
+            if ($nextTimestamp <= time()) {
+                // Messung liegt in der Vergangenheit → 15 Minuten ab jetzt
+                $nextTimestamp = time() + (15 * 60);
+                $this->Debug("nextMeteringAt liegt in der Vergangenheit – +15 Minuten ab jetzt");
+            }
+
+            // Mindestintervall 60 Sekunden
+            $delayMs = max(60 * 1000, ($nextTimestamp - time()) * 1000);
             $this->SetTimerInterval("UpdateTimer", $delayMs);
-            $this->Debug("Nächstes Update geplant um " . date("d.m.Y H:i:s", $nextTimestamp));
+
+            $this->Debug(
+                "Nächstes Update geplant um " .
+                date("d.m.Y H:i:s", $nextTimestamp) .
+                " (in " . round($delayMs / 60000, 1) . " Minuten)"
+            );
         } else {
-            // Fallback: 6 Stunden
+            // Fallback
             $this->SetTimerInterval("UpdateTimer", 6 * 60 * 60 * 1000);
-            $this->Debug("Ungültige nextMeteringAt – Fallback 6 Stunden");
+            $this->Debug("Kein gültiges nextMeteringAt – Fallback 6 Stunden");
         }
     }
 
@@ -125,10 +146,7 @@ class OilfoxIPSymconModul extends IPSModule
     private function ParseNextMetering(string $value): ?int
     {
         try {
-            // ISO8601 / RFC3339 mit Millisekunden & UTC ("Z")
             $dt = new DateTimeImmutable($value, new DateTimeZone('UTC'));
-
-            // 15 Minuten nach der Messung
             return $dt->getTimestamp() + (15 * 60);
         } catch (Exception $e) {
             return null;
@@ -152,7 +170,7 @@ class OilfoxIPSymconModul extends IPSModule
             "https://api.oilfox.io/customer-api/v1/login",
             "POST",
             json_encode([
-                "email" => $this->ReadPropertyString("Email"),
+                "email"    => $this->ReadPropertyString("Email"),
                 "password" => $pw
             ]),
             ["Content-Type: application/json"]
